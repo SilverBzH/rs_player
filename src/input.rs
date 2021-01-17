@@ -1,8 +1,8 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{Device, Host, Stream, StreamConfig, SupportedStreamConfig};
+use ringbuf::Producer;
 use std::fmt;
 use std::sync::{Arc, Mutex};
-use ringbuf::Producer;
 
 pub type AudioBuffer = Arc<Mutex<Vec<f32>>>;
 
@@ -54,7 +54,11 @@ impl Input {
                 eprintln!("output stream fell behind: try increasing latency");
             }
         };
-        self.stream = Some(self.device.build_input_stream(&self.stream_config, data_callback, err_fn)?);
+        self.stream = Some(self.device.build_input_stream(
+            &self.stream_config,
+            data_callback,
+            err_fn,
+        )?);
         Ok(())
     }
 

@@ -2,7 +2,6 @@ use analogic_player::input::Input;
 use analogic_player::output::Output;
 use ringbuf::RingBuffer;
 
-
 fn main() -> Result<(), anyhow::Error> {
     //Selecting host
     let host = cpal::default_host();
@@ -33,11 +32,10 @@ fn main() -> Result<(), anyhow::Error> {
         // so this should never fail
         producer.push(0.0).unwrap();
     }
-    
+
     input_device.build_stream(producer)?;
     output_device.build_stream(consumer)?;
 
-    
     // Play the streams.
     println!(
         "Starting the input and output streams with `{}` milliseconds of latency.",
@@ -46,5 +44,5 @@ fn main() -> Result<(), anyhow::Error> {
     input_device.play()?;
     output_device.play()?;
 
-    loop{}
+    loop {}
 }

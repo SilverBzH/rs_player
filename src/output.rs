@@ -1,7 +1,7 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{Device, Host, StreamConfig, Stream, SupportedStreamConfig};
-use std::fmt;
+use cpal::{Device, Host, Stream, StreamConfig, SupportedStreamConfig};
 use ringbuf::Consumer;
+use std::fmt;
 
 pub struct Output {
     pub device: Device,
@@ -57,7 +57,11 @@ impl Output {
                 eprintln!("input stream fell behind: try increasing latency");
             }
         };
-        self.stream = Some(self.device.build_output_stream(&self.stream_config, data_callback, err_fn)?);
+        self.stream = Some(self.device.build_output_stream(
+            &self.stream_config,
+            data_callback,
+            err_fn,
+        )?);
         Ok(())
     }
 
