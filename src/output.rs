@@ -10,7 +10,7 @@ pub struct Output {
 }
 
 impl Output {
-    pub fn new(host: &Host) -> Result<Output, String> {
+    pub fn new(host: &Host) -> Result<Output, anyhow::Error> {
         //Selecting default output
         let device = host
             .default_output_device()
@@ -24,12 +24,7 @@ impl Output {
         };
 
         //Selecting default output config
-        let supported_stream_config = match device.default_output_config() {
-            Ok(supported_stream_config) => supported_stream_config,
-            Err(e) => {
-                return Err(String::from(format!("Error getting output config: {}", e)));
-            }
-        };
+        let supported_stream_config = device.default_output_config()?;
         let supported_stream = supported_stream_config.clone();
         let stream_config: StreamConfig = supported_stream.clone().into();
         Ok(Output {
