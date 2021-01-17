@@ -1,15 +1,17 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{Device, Host, StreamConfig, SupportedStreamConfig};
+use cpal::{Device, Host, Stream, StreamConfig, SupportedStreamConfig};
 use std::fmt;
 use std::sync::{Arc, Mutex};
+use ringbuf::Producer;
 
-pub type ReadBuffer = Arc<Mutex<Vec<f32>>>;
+pub type AudioBuffer = Arc<Mutex<Vec<f32>>>;
 
 pub struct Input {
     device: Device,
     name: String,
     supported_stream_config: SupportedStreamConfig,
-    stream_config: StreamConfig,
+    pub stream_config: StreamConfig,
+    stream: Option<Stream>,
 }
 
 impl Input {
@@ -33,47 +35,35 @@ impl Input {
             name,
             supported_stream_config,
             stream_config,
+            stream: None,
         })
     }
 
-    pub fn read(&self, buffer: &ReadBuffer) -> Result<(), anyhow::Error> {
-        let buffer_2 = buffer.clone();
-        let err_fn = move |err| {
+    pub fn build_stream(&mut self, mut producer: Producer<f32>) -> Result<(), anyhow::Error> {
+        let err_fn = |err: cpal::StreamError| {
             eprintln!("an error occurred on stream: {}", err);
         };
-
-        let stream = match self.supported_stream_config.sample_format() {
-            cpal::SampleFormat::F32 => self.device.build_input_stream(
-                &self.stream_config,
-                move |data, _: &_| Input::write_input_data::<f32>(data, &buffer_2),
-                err_fn,
-            )?,
-            cpal::SampleFormat::I16 => self.device.build_input_stream(
-                &self.stream_config,
-                move |data, _: &_| Input::write_input_data::<i16>(data, &buffer_2),
-                err_fn,
-            )?,
-            cpal::SampleFormat::U16 => self.device.build_input_stream(
-                &self.stream_config,
-                move |data, _: &_| Input::write_input_data::<u16>(data, &buffer_2),
-                err_fn,
-            )?,
+        let data_callback = move |data: &[f32], _: &cpal::InputCallbackInfo| {
+            let mut output_fell_behind = false;
+            for &sample in data {
+                if producer.push(sample).is_err() {
+                    output_fell_behind = true;
+                }
+            }
+            if output_fell_behind {
+                eprintln!("output stream fell behind: try increasing latency");
+            }
         };
-        stream.play()?;
-        std::thread::sleep(std::time::Duration::from_secs(3));
-        drop(stream);
+        self.stream = Some(self.device.build_input_stream(&self.stream_config, data_callback, err_fn)?);
         Ok(())
     }
 
-    fn write_input_data<T>(input: &[T], buffer: &ReadBuffer)
-    where
-        T: cpal::Sample,
-    {
-        if let Ok(mut buffer_guard) = buffer.try_lock() {
-            for &sample in input.iter() {
-                buffer_guard.push(sample.to_f32());
-            }
+    pub fn play(&self) -> Result<(), anyhow::Error> {
+        match &self.stream {
+            Some(s) => s.play()?,
+            None => eprintln!("Stream not created"),
         }
+        Ok(())
     }
 }
 

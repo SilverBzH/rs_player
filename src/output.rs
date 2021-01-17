@@ -1,12 +1,14 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{Device, Host, StreamConfig, SupportedStreamConfig};
+use cpal::{Device, Host, StreamConfig, Stream, SupportedStreamConfig};
 use std::fmt;
+use ringbuf::Consumer;
 
 pub struct Output {
-    device: Device,
+    pub device: Device,
     name: String,
     supported_stream_config: SupportedStreamConfig,
     stream_config: StreamConfig,
+    stream: Option<Stream>,
 }
 
 impl Output {
@@ -32,56 +34,39 @@ impl Output {
             name,
             supported_stream_config,
             stream_config,
+            stream: None,
         })
     }
 
-    pub fn run(&self) -> Result<(), anyhow::Error> {
-        match self.supported_stream_config.sample_format() {
-            cpal::SampleFormat::F32 => self.running::<f32>(),
-            cpal::SampleFormat::I16 => self.running::<i16>(),
-            cpal::SampleFormat::U16 => self.running::<u16>(),
-        }
-    }
-
-    fn running<T>(&self) -> Result<(), anyhow::Error>
-    where
-        T: cpal::Sample,
-    {
-        let sample_rate = self.stream_config.sample_rate.0 as f32;
-        let channels = self.stream_config.channels as usize;
-
-        // Produce a sinusoid of maximum amplitude.
-        let mut sample_clock = 0f32;
-        let mut next_value = move || -> f32 {
-            sample_clock = (sample_clock + 1.0) % sample_rate;
-            (sample_clock * 440.0 * 2.0 * std::f32::consts::PI / sample_rate).sin()
+    pub fn build_stream(&mut self, mut consumer: Consumer<f32>) -> Result<(), anyhow::Error> {
+        let err_fn = |err: cpal::StreamError| {
+            eprintln!("an error occurred on stream: {}", err);
         };
-
-        let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
-        let stream = self.device.build_output_stream(
-            &self.stream_config,
-            move |data: &mut [T], _: &cpal::OutputCallbackInfo| {
-                Output::write_data(data, channels, &mut next_value)
-            },
-            err_fn,
-        )?;
-
-        stream.play()?;
-
-        std::thread::sleep(std::time::Duration::from_millis(1000));
+        let data_callback = move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
+            let mut input_fell_behind = false;
+            for sample in data {
+                *sample = match consumer.pop() {
+                    Some(s) => s,
+                    None => {
+                        input_fell_behind = true;
+                        0.0
+                    }
+                };
+            }
+            if input_fell_behind {
+                eprintln!("input stream fell behind: try increasing latency");
+            }
+        };
+        self.stream = Some(self.device.build_output_stream(&self.stream_config, data_callback, err_fn)?);
         Ok(())
     }
 
-    fn write_data<T>(output: &mut [T], channels: usize, next_sample: &mut dyn FnMut() -> f32)
-    where
-        T: cpal::Sample,
-    {
-        for frame in output.chunks_mut(channels) {
-            let value: T = cpal::Sample::from::<f32>(&next_sample());
-            for sample in frame.iter_mut() {
-                *sample = value;
-            }
+    pub fn play(&self) -> Result<(), anyhow::Error> {
+        match &self.stream {
+            Some(s) => s.play()?,
+            None => eprintln!("Stream not created"),
         }
+        Ok(())
     }
 }
 
