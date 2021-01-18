@@ -1,3 +1,4 @@
+use super::StreamDevice;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{Device, Host, Stream, StreamConfig, SupportedStreamConfig};
 use ringbuf::Consumer;
@@ -37,8 +38,10 @@ impl Output {
             stream: None,
         })
     }
+}
 
-    pub fn build_stream(&mut self, mut consumer: Consumer<f32>) -> Result<(), anyhow::Error> {
+impl StreamDevice<Consumer<f32>> for Output {
+    fn build_stream(&mut self, mut consumer: Consumer<f32>) -> Result<(), anyhow::Error> {
         let err_fn = |err: cpal::StreamError| {
             eprintln!("an error occurred on stream: {}", err);
         };
@@ -65,7 +68,7 @@ impl Output {
         Ok(())
     }
 
-    pub fn play(&self) -> Result<(), anyhow::Error> {
+    fn play(&self) -> Result<(), anyhow::Error> {
         match &self.stream {
             Some(s) => s.play()?,
             None => eprintln!("Stream not created"),
