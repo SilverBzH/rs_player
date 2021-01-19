@@ -38,10 +38,8 @@ impl Input {
             stream: None,
         })
     }
-}
 
-impl StreamDevice<Producer<f32>> for Input {
-    fn build_stream(&mut self, mut producer: Producer<f32>) -> Result<(), anyhow::Error> {
+    pub fn build_stream(&mut self, mut producer: Producer<f32>) -> Result<(), anyhow::Error> {
         let err_fn = |err: cpal::StreamError| {
             eprintln!("an error occurred on stream: {}", err);
         };
@@ -63,7 +61,9 @@ impl StreamDevice<Producer<f32>> for Input {
         )?);
         Ok(())
     }
+}
 
+impl StreamDevice for Input {
     fn play(&self) -> Result<(), anyhow::Error> {
         match &self.stream {
             Some(s) => s.play()?,
