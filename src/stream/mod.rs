@@ -5,15 +5,9 @@ use input::Input;
 use output::Output;
 use ringbuf::RingBuffer;
 
-use std::sync::{Mutex, Arc};
+use super::ui::SampleUiArcMutex;
 
-trait StreamDevice<T> {
-    fn build_stream(
-        &mut self,
-        ringbuf: T,
-        sample_for_ui: Option<Arc<Mutex<Vec<u64>>>>,
-    ) -> Result<(), anyhow::Error>;
-
+trait StreamDevice {
     fn play(&self) -> Result<(), anyhow::Error>;
 }
 
@@ -23,7 +17,7 @@ pub struct Stream {
 }
 
 impl Stream {
-    pub fn new(sample_for_ui: Arc<Mutex<Vec<u64>>>) -> Result<Stream, anyhow::Error> {
+    pub fn new(sample_for_ui: SampleUiArcMutex) -> Result<Stream, anyhow::Error> {
         let host = cpal::default_host();
         let latency = 100f32;
 
@@ -48,12 +42,9 @@ impl Stream {
             producer.push(0.0).unwrap();
         }
 
-        input.build_stream(producer, None)?;
+        input.build_stream(producer)?;
         output.build_stream(consumer, Some(sample_for_ui))?;
-        Ok(Stream{
-            input,
-            output,
-        })
+        Ok(Stream { input, output })
     }
 
     pub fn play(&self) -> Result<(), anyhow::Error> {
@@ -62,4 +53,3 @@ impl Stream {
         Ok(())
     }
 }
-
