@@ -4,7 +4,6 @@ use cpal::{Device, Host, Stream, StreamConfig, SupportedStreamConfig};
 use ringbuf::Producer;
 use std::fmt;
 use std::sync::{Arc, Mutex};
-pub type AudioBuffer = Arc<Mutex<Vec<f32>>>;
 
 pub struct Input {
     device: Device,
@@ -15,7 +14,7 @@ pub struct Input {
 }
 
 impl Input {
-    pub fn new(host: &Host) -> Result<Input, anyhow::Error> {
+    pub(super) fn new(host: &Host) -> Result<Input, anyhow::Error> {
         let device = host
             .default_input_device()
             .expect("No input device available");
@@ -38,8 +37,12 @@ impl Input {
             stream: None,
         })
     }
+}
 
-    pub fn build_stream(&mut self, mut producer: Producer<f32>) -> Result<(), anyhow::Error> {
+impl StreamDevice<Producer<f32>> for Input {
+    fn build_stream(&mut self,
+                    mut producer: Producer<f32>,
+                    _sample_for_ui: Option<Arc<Mutex<Vec<u64>>>>) -> Result<(), anyhow::Error> {
         let err_fn = |err: cpal::StreamError| {
             eprintln!("an error occurred on stream: {}", err);
         };
@@ -61,9 +64,7 @@ impl Input {
         )?);
         Ok(())
     }
-}
 
-impl StreamDevice for Input {
     fn play(&self) -> Result<(), anyhow::Error> {
         match &self.stream {
             Some(s) => s.play()?,

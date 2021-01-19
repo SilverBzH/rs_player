@@ -14,7 +14,7 @@ pub struct Output {
 }
 
 impl Output {
-    pub fn new(host: &Host) -> Result<Output, anyhow::Error> {
+    pub(super) fn new(host: &Host) -> Result<Output, anyhow::Error> {
         //Selecting default output
         let device = host
             .default_output_device()
@@ -39,11 +39,13 @@ impl Output {
             stream: None,
         })
     }
+}
 
-    pub fn build_stream(
+impl StreamDevice<Consumer<f32>> for Output {
+    fn build_stream(
         &mut self,
         mut consumer: Consumer<f32>,
-        sample_for_ui: Arc<Mutex<Vec<u64>>>,
+        sample_for_ui: Option<Arc<Mutex<Vec<u64>>>>,
     ) -> Result<(), anyhow::Error> {
         let err_fn = |err: cpal::StreamError| {
             eprintln!("an error occurred on stream: {}", err);
@@ -51,13 +53,15 @@ impl Output {
 
         let data_callback = move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
             let mut input_fell_behind = false;
-            let feed_sample_ui = |sample_for_ui: &Arc<Mutex<Vec<u64>>>, sample: f32| {
-                if let Ok(mut guard) = sample_for_ui.try_lock() {
-                    if guard.len() > 1000 {
-                        guard.remove(0);
+            let feed_sample_ui = |sample_for_ui: &Option<Arc<Mutex<Vec<u64>>>>, sample: f32| {
+                if let Some(some_sample) = sample_for_ui {
+                    if let Ok(mut guard) = some_sample.try_lock() {
+                        if guard.len() > 1000 {
+                            guard.remove(0);
+                        }
+                        let sample: f32 = sample.abs() * 100f32;
+                        guard.push(sample as u64);
                     }
-                    let sample: f32 = sample.abs() * 100f32;
-                    guard.push(sample as u64);
                 }
             };
             for sample in data {
@@ -84,9 +88,7 @@ impl Output {
         )?);
         Ok(())
     }
-}
 
-impl StreamDevice for Output {
     fn play(&self) -> Result<(), anyhow::Error> {
         match &self.stream {
             Some(s) => s.play()?,
