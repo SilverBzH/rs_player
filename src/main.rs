@@ -39,7 +39,6 @@ async fn main() -> Result<(), anyhow::Error> {
                     if let Ok(guard) = sample_for_ui_2.try_lock() {
                         data = guard.clone()
                     };
-                    // println!("data: {:?}", data);
                     let chunks = Layout::default()
                         .direction(Direction::Vertical)
                         .margin(1)
@@ -49,15 +48,14 @@ async fn main() -> Result<(), anyhow::Error> {
                             Constraint::Percentage(10),
                         ])
                         .split(f.size());
-                    let block = Block::default().title("Block").borders(Borders::ALL);
-                    f.render_widget(block, chunks[0]);
+                    // Sparkline
                     let sparkline_block = Block::default().title("Sparkline").borders(Borders::ALL);
                     let sparkline_style = Style::default().fg(Color::Magenta).bg(Color::Reset);
                     let sparkline = Sparkline::default()
                         .block(sparkline_block)
                         .data(&data)
                         .style(sparkline_style);
-                    f.render_widget(sparkline, chunks[1]);
+                    f.render_widget(sparkline, chunks[0]);
                 })
                 .unwrap();
         }
