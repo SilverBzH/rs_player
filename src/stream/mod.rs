@@ -19,7 +19,7 @@ pub struct Stream {
 impl Stream {
     pub fn new(sample_for_ui: SampleUiArcMutex) -> Result<Stream, anyhow::Error> {
         let host = cpal::default_host();
-        let latency = 100f32;
+        let latency = 150f32;
 
         //Selecting default input
         let mut input = Input::new(&host)?;

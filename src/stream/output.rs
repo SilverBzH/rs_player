@@ -59,7 +59,7 @@ impl Output {
                             guard.remove(0);
                         }
                         let sample: f32 = sample.abs() * 100f32;
-                        guard.push(("", sample as u64));
+                        guard.push(sample as u64);
                     }
                 }
             };
