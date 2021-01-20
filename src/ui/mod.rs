@@ -27,10 +27,10 @@ pub async fn draw_it(sample_for_ui: SampleUiArcMutex) {
     let mut terminal = Terminal::new(backend).expect("Error creating a new terminal");
     terminal.clear().unwrap();
     let event = Events::new();
+    let mut samples_ui: Vec<u64> = Vec::new();
     loop {
         terminal
             .draw(|f| {
-                let mut samples_ui: Vec<u64> = Vec::new();
                 if let Ok(guard) = sample_for_ui.try_lock() {
                     samples_ui.clear();
                     samples_ui = guard.clone();
@@ -43,7 +43,7 @@ pub async fn draw_it(sample_for_ui: SampleUiArcMutex) {
                     .split(f.size());
 
                 // Sparkline
-                let sparkline_block = Block::default().title("Sparkline").borders(Borders::ALL);
+                let sparkline_block = Block::default().title("Audio output").borders(Borders::ALL);
                 let sparkline_style = Style::default().fg(Color::Magenta).bg(Color::Reset);
                 let sparkline = Sparkline::default()
                     .block(sparkline_block)
@@ -52,7 +52,7 @@ pub async fn draw_it(sample_for_ui: SampleUiArcMutex) {
                 f.render_widget(sparkline, chunks[0]);
 
                 // Print Log
-                let log_block = Block::default().title("Log").borders(Borders::ALL);
+                let log_block = Block::default().title("Logs").borders(Borders::ALL);
                 f.render_widget(log_block, chunks[1]);
             })
             .unwrap();
@@ -61,7 +61,6 @@ pub async fn draw_it(sample_for_ui: SampleUiArcMutex) {
             Event::Input(input) => match input {
                 Key::Char('q') => {
                     terminal.clear().unwrap();
-                    // process::exit(1);
                     break;
                 }
                 _ => {}
