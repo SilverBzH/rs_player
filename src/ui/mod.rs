@@ -3,8 +3,8 @@ use std::io;
 use std::sync::{Arc, Mutex};
 
 // termion
-use termion::raw::IntoRawMode;
 use termion::event::Key;
+use termion::raw::IntoRawMode;
 
 // tui
 use tui::backend::TermionBackend;
@@ -15,8 +15,7 @@ use tui::Terminal;
 
 // Event
 pub mod events;
-use events::{Events, Event};
-
+use events::{Event, Events};
 
 pub type SampleUi = u64;
 
@@ -40,10 +39,7 @@ pub async fn draw_it(sample_for_ui: SampleUiArcMutex) {
                 let chunks = Layout::default()
                     .direction(Direction::Vertical)
                     .margin(1)
-                    .constraints([
-                        Constraint::Percentage(20),
-                        Constraint::Percentage(30),
-                    ])
+                    .constraints([Constraint::Percentage(20), Constraint::Percentage(30)])
                     .split(f.size());
 
                 // Sparkline
@@ -61,16 +57,16 @@ pub async fn draw_it(sample_for_ui: SampleUiArcMutex) {
             })
             .unwrap();
 
-            match event.next().unwrap() {
-                Event::Input(input) => match input {
-                    Key::Char('q') => { 
-                        terminal.clear().unwrap();
-                        // process::exit(1);
-                        break;
-                    },
-                    _ => {},
-                },
-                Event::Continue => continue,
-            }
+        match event.next().unwrap() {
+            Event::Input(input) => match input {
+                Key::Char('q') => {
+                    terminal.clear().unwrap();
+                    // process::exit(1);
+                    break;
+                }
+                _ => {}
+            },
+            Event::Continue => continue,
+        }
     }
 }

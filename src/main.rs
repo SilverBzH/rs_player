@@ -34,7 +34,7 @@ async fn main() -> Result<(), anyhow::Error> {
                     if resp == true {
                         break;
                     }
-                },
+                }
                 Err(_) => std::thread::sleep(Duration::from_millis(150)),
             }
         }

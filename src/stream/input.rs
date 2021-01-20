@@ -37,10 +37,7 @@ impl Input {
         })
     }
 
-    pub fn build_stream(
-        &mut self,
-        mut producer: Producer<f32>,
-    ) -> Result<(), anyhow::Error> {
+    pub fn build_stream(&mut self, mut producer: Producer<f32>) -> Result<(), anyhow::Error> {
         let err_fn = |err: cpal::StreamError| {
             eprintln!("an error occurred on stream: {}", err);
         };
