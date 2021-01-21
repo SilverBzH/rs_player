@@ -44,19 +44,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "analogic_player"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "cpal",
- "lazy_static",
- "ringbuf",
- "termion",
- "tokio",
- "tui",
-]
-
-[[package]]
 name = "anyhow"
 version = "1.0.38"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -965,6 +952,19 @@ name = "rle-decode-fast"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cabe4fa914dec5870285fa7f71f602645da47c486e68486d2b4ceb4a343e90ac"
+
+[[package]]
+name = "rs_player"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "cpal",
+ "lazy_static",
+ "ringbuf",
+ "termion",
+ "tokio",
+ "tui",
+]
 
 [[package]]
 name = "rustc-demangle"

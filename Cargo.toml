@@ -1,5 +1,5 @@
 [package]
-name = "analogic_player"
+name = "rs_player"
 version = "0.1.0"
 authors = ["Charlie Boutier <charlie@tempow.com>"]
 edition = "2018"
