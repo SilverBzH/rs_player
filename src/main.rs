@@ -3,7 +3,14 @@ use std::process;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-//UI include
+//Lazy static
+use lazy_static;
+
+// Log
+pub mod log;
+use log::Log;
+
+// UI
 pub mod ui;
 
 // Stream
@@ -21,7 +28,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let stream_task = tokio::spawn(async move {
         let err_msg = |err| {
-            eprintln!("error stream: {}", err);
+            Log::error(format!("error stream: {}", err));
             process::exit(2);
         };
         let stream = Stream::new(sample_for_ui).unwrap_or_else(|err| err_msg(err));

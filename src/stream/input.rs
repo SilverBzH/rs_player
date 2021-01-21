@@ -4,6 +4,9 @@ use cpal::{Device, Host, Stream, StreamConfig, SupportedStreamConfig};
 use ringbuf::Producer;
 use std::fmt;
 
+use super::Log;
+use std::process;
+
 pub struct Input {
     device: Device,
     name: String,
@@ -14,13 +17,14 @@ pub struct Input {
 
 impl Input {
     pub(super) fn new(host: &Host) -> Result<Input, anyhow::Error> {
-        let device = host
-            .default_input_device()
-            .expect("No input device available");
+        let device = host.default_input_device().unwrap_or_else(|| {
+            Log::error("No input device available".to_string());
+            process::exit(1);
+        });
         let name = match device.name() {
             Ok(name) => name,
             Err(err) => {
-                println!("Error getting input device name: {}", err);
+                Log::error(format!("Error getting input device name: {}", err));
                 String::from("Default")
             }
         };
@@ -39,7 +43,7 @@ impl Input {
 
     pub fn build_stream(&mut self, mut producer: Producer<f32>) -> Result<(), anyhow::Error> {
         let err_fn = |err: cpal::StreamError| {
-            eprintln!("an error occurred on stream: {}", err);
+            Log::error(format!("an error occurred on stream: {}", err));
         };
         let data_callback = move |data: &[f32], _: &cpal::InputCallbackInfo| {
             let mut output_fell_behind = false;
@@ -49,7 +53,7 @@ impl Input {
                 }
             }
             if output_fell_behind {
-                eprintln!("output stream fell behind: try increasing latency");
+                Log::warn("output stream fell behind: try increasing latency".to_string());
             }
         };
         self.stream = Some(self.device.build_input_stream(
@@ -65,7 +69,7 @@ impl StreamDevice for Input {
     fn play(&self) -> Result<(), anyhow::Error> {
         match &self.stream {
             Some(s) => s.play()?,
-            None => eprintln!("Stream not created"),
+            None => Log::error("Stream not created".to_string()),
         }
         Ok(())
     }

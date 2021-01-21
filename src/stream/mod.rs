@@ -7,6 +7,8 @@ use ringbuf::RingBuffer;
 
 use super::ui::SampleUiArcMutex;
 
+use super::log::Log;
+
 trait StreamDevice {
     fn play(&self) -> Result<(), anyhow::Error>;
 }
@@ -20,10 +22,13 @@ impl Stream {
     pub fn new(sample_for_ui: SampleUiArcMutex) -> Result<Stream, anyhow::Error> {
         let host = cpal::default_host();
         let latency = 150f32;
+        Log::info(format!("Default host selected: {}", host.id().name()));
 
         //Selecting default input
         let mut input = Input::new(&host)?;
         let mut output = Output::new(&host)?;
+        Log::info(format!("input: {}", input));
+        Log::info(format!("output: {}", output));
 
         let config = &input.stream_config;
 
@@ -44,6 +49,7 @@ impl Stream {
 
         input.build_stream(producer)?;
         output.build_stream(consumer, Some(sample_for_ui))?;
+        Log::info(format!("Stream with {} milliseconds of latency", latency));
         Ok(Stream { input, output })
     }
 

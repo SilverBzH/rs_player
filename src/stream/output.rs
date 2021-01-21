@@ -1,10 +1,11 @@
+use super::Log;
+use super::SampleUiArcMutex;
 use super::StreamDevice;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{Device, Host, Stream, StreamConfig, SupportedStreamConfig};
 use ringbuf::Consumer;
 use std::fmt;
-
-use super::SampleUiArcMutex;
+use std::process;
 
 pub struct Output {
     pub device: Device,
@@ -17,13 +18,14 @@ pub struct Output {
 impl Output {
     pub(super) fn new(host: &Host) -> Result<Output, anyhow::Error> {
         //Selecting default output
-        let device = host
-            .default_output_device()
-            .expect("Default device not available.");
+        let device = host.default_output_device().unwrap_or_else(|| {
+            Log::error("No output device available".to_string());
+            process::exit(1);
+        });
         let name = match device.name() {
             Ok(name) => name,
             Err(e) => {
-                println!("Error getting name of output device: {}", e);
+                Log::error(format!("Error getting name of output device: {}", e));
                 "Default".to_string()
             }
         };
@@ -47,7 +49,7 @@ impl Output {
         sample_for_ui: Option<SampleUiArcMutex>,
     ) -> Result<(), anyhow::Error> {
         let err_fn = |err: cpal::StreamError| {
-            eprintln!("an error occurred on stream: {}", err);
+            Log::error(format!("an error occurred on stream: {}", err));
         };
 
         let data_callback = move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
@@ -77,7 +79,7 @@ impl Output {
                 };
             }
             if input_fell_behind {
-                eprintln!("input stream fell behind: try increasing latency");
+                Log::warn("input stream fell behind: try increasing latency".to_string());
             }
         };
         self.stream = Some(self.device.build_output_stream(
@@ -93,7 +95,7 @@ impl StreamDevice for Output {
     fn play(&self) -> Result<(), anyhow::Error> {
         match &self.stream {
             Some(s) => s.play()?,
-            None => eprintln!("Stream not created"),
+            None => Log::error("Stream not created".to_string()),
         }
         Ok(())
     }

@@ -1,5 +1,6 @@
 //std
 use std::io;
+use std::process;
 use std::sync::{Arc, Mutex};
 
 // termion
@@ -10,21 +11,30 @@ use termion::raw::IntoRawMode;
 use tui::backend::TermionBackend;
 use tui::layout::{Constraint, Direction, Layout};
 use tui::style::{Color, Style};
-use tui::widgets::{Block, Borders, Sparkline};
+use tui::widgets::{Block, Borders, List, ListItem, Sparkline};
 use tui::Terminal;
 
 // Event
 pub mod events;
 use events::{Event, Events};
 
+// Log
+use crate::log::{Log, LOGS};
+
 pub type SampleUi = u64;
 
 pub type SampleUiArcMutex = Arc<Mutex<Vec<SampleUi>>>;
 
 pub async fn draw_it(sample_for_ui: SampleUiArcMutex) {
-    let stdout = io::stdout().into_raw_mode().expect("Error stdout");
+    let stdout = io::stdout().into_raw_mode().unwrap_or_else(|err| {
+        Log::error(format!("error stdout: {}", err));
+        process::exit(1)
+    });
     let backend = TermionBackend::new(stdout);
-    let mut terminal = Terminal::new(backend).expect("Error creating a new terminal");
+    let mut terminal = Terminal::new(backend).unwrap_or_else(|err| {
+        Log::error(format!("Error creating a new terminal: {}", err));
+        process::exit(1)
+    });
     terminal.clear().unwrap();
     let event = Events::new();
     let mut samples_ui: Vec<u64> = Vec::new();
@@ -53,7 +63,15 @@ pub async fn draw_it(sample_for_ui: SampleUiArcMutex) {
 
                 // Print Log
                 let log_block = Block::default().title("Logs").borders(Borders::ALL);
-                f.render_widget(log_block, chunks[1]);
+                let mut log_items: Vec<ListItem> = Vec::new();
+                if let Ok(log_guard) = LOGS.try_lock() {
+                    log_items = log_guard.clone();
+                }
+                let list = List::new(log_items)
+                    .block(log_block)
+                    .highlight_style(Style::default().fg(Color::Blue))
+                    .highlight_symbol("INFO");
+                f.render_widget(list, chunks[1]);
             })
             .unwrap();
 
