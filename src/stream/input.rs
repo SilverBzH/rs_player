@@ -78,9 +78,9 @@ impl StreamDevice for Input {
 impl fmt::Display for Input {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let info = format!(
-            "name: {}\nSupported stream config: {:?}\n",
+            "{} - {:?}\n",
             self.name, self.supported_stream_config
         );
-        write!(f, "--- Output device---\n{}", info)
+        write!(f, "{}", info)
     }
 }
